@@ -47,7 +47,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatInTimeZone } from 'date-fns-tz';
-import { command, snapshot, supabase, uploadClientLogo, removeClientLogo } from './lib/api';
+import { command, snapshot, supabase, uploadClientLogo, removeClientLogo, sendInvitation, manageInvitation } from './lib/api';
 import type { Snapshot, Entry, Payload, Project, Client, Task } from './lib/types';
 import {
   clock,
@@ -198,7 +198,7 @@ export default function App() {
     setBusy(true);
     setFormError('');
     try {
-      const result = await command(demo, action, payload);
+      const result = action === 'invite' && !demo ? await sendInvitation(false, payload) : await command(demo, action, payload);
       await reload();
       setToast(success);
       return result;
@@ -422,7 +422,7 @@ export default function App() {
           ) : section === 'approvals' ? (
             <ApprovalsPage s={data} now={now} open={open} run={run} />
           ) : section === 'team' ? (
-            <TeamPage s={data} open={open} run={run} />
+            <TeamPage s={data} open={open} run={run} reload={reload} />
           ) : (
             <SettingsPage s={data} busy={busy} demo={demo} open={open} act={act} />
           )}
@@ -1623,9 +1623,20 @@ function ApprovalsPage({ s, now, open, run }: Shared) {
   );
 }
 
-function TeamPage({ s, open, run }: Omit<Shared, 'now'>) {
+function TeamPage({ s, open, run, reload }: Omit<Shared, 'now'> & { reload: () => Promise<void> }) {
+  const [invitationError, setInvitationError] = useState('');
   if (s.me.role !== 'admin')
     return <Empty title="Acceso reservado" description="Solo los administradores gestionan el equipo." />;
+  const pendingInvitations = s.invitations.filter((invite) => invite.status !== 'accepted');
+  const invitationAction = async (action: 'resend' | 'cancel', id: string) => {
+    try {
+      setInvitationError('');
+      await manageInvitation(action, id);
+      await reload();
+    } catch (error) {
+      setInvitationError(errorText(error));
+    }
+  };
   return (
     <>
       <Heading
@@ -1694,6 +1705,33 @@ function TeamPage({ s, open, run }: Omit<Shared, 'now'>) {
             </div>
           </div>
         ))}
+      </div>
+      <div className="panel">
+        <div className="panel-title">
+          <div>
+            <h2>Invitaciones</h2>
+            <p>Solo los administradores pueden invitar personas al equipo.</p>
+          </div>
+          <span className="badge">{pendingInvitations.filter((invite) => invite.status === 'pending').length} pendientes</span>
+        </div>
+        {invitationError && <div className="form-error" role="alert"><AlertCircle size={16} />{invitationError}</div>}
+        {pendingInvitations.length ? pendingInvitations.map((invite) => {
+          const expired = invite.status === 'expired' || Date.parse(invite.expires_at) <= Date.now();
+          const status = expired && invite.status === 'pending' ? 'expired' : invite.status || 'pending';
+          return <div className="table-row invitation-row" key={invite.id}>
+            <div className="person-cell">
+              <span className="avatar"><Mail size={16} /></span>
+              <div><strong>{invite.email}</strong><small>{invite.role === 'admin' ? 'Administrador' : 'Miembro'} · vence {dateLabel(invite.expires_at.slice(0, 10))}</small></div>
+            </div>
+            <Badge status={status} />
+            <div className="row-actions">
+              {['pending', 'expired'].includes(status) && <>
+                <button className="button subtle" onClick={() => void invitationAction('resend', invite.id)}><RotateCcw size={14} />Reenviar</button>
+                <button className="text-button" onClick={() => void invitationAction('cancel', invite.id)}>Cancelar</button>
+              </>}
+            </div>
+          </div>;
+        }) : <Empty title="Sin invitaciones pendientes" description="Las invitaciones que envíes aparecerán aquí." />}
       </div>
       <div className="info-card">
         <ShieldCheck size={23} />
@@ -2041,9 +2079,9 @@ function Editor({
               <p>
                 {demo
                   ? 'En la demostración el enlace es ilustrativo. No crea una cuenta real.'
-                  : 'Comparte este enlace con ' +
+                  : 'Enviamos una invitación por correo a ' +
                     values.email +
-                    '. Caduca en 7 días y solo funciona con ese correo.'}
+                    '. También puedes compartir este enlace como respaldo. Caduca en 7 días y solo funciona con ese correo.'}
               </p>
               <input aria-label="Enlace de invitación" value={link} readOnly />
               <button
@@ -2318,7 +2356,7 @@ function Editor({
                     </select>
                   </Field>
                   <p className="field-hint">
-                    Se creará un enlace de invitación que puedes compartir personalmente.
+                    Se enviará un correo de invitación. El enlace manual quedará disponible como respaldo.
                   </p>
                 </>
               )}
@@ -2407,7 +2445,7 @@ function Editor({
                   Guardando…
                 </>
               ) : k === 'invite' ? (
-                'Crear invitación'
+                'Enviar invitación'
               ) : k === 'delete_entry' ? (
                 'Eliminar registro'
               ) : (

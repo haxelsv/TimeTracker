@@ -5,10 +5,10 @@ La aplicación usa React/Vite, Supabase (Auth + PostgreSQL) y Vercel. `/demo/tim
 ## 1. Crear y configurar Supabase
 
 1. Crear un proyecto en tu organización, sin seleccionar un plan de pago automáticamente.
-2. Ejecutar las migraciones `supabase/migrations/001_timetracker.sql`, `002_project_assignments.sql` y `003_client_logos.sql` en el SQL Editor del proyecto. En proyectos administrados por CLI, ejecutar `supabase db push` tras enlazar el proyecto.
+2. Ejecutar las migraciones `supabase/migrations/001_timetracker.sql`, `002_project_assignments.sql`, `003_client_logos.sql` y `004_email_invitations.sql` en el SQL Editor del proyecto. En proyectos administrados por CLI, ejecutar `supabase db push` tras enlazar el proyecto.
 3. Ejecutar una vez `supabase/storage-client-logos.sql` para crear el bucket público `client-logos` y sus políticas de escritura reservadas a administradores. Las imágenes se sirven públicamente mediante URL, pero solo los administradores autenticados pueden subir, reemplazar o eliminar archivos.
 4. Mantener activada la confirmación de correo de Supabase Auth. Configurar SMTP propio para correo de confirmación y recuperación en producción; el correo de prueba de Supabase tiene restricciones.
-4. Ejecutar `supabase/bootstrap-owner.sql`, sustituyendo el correo de ejemplo por el correo real del propietario. Esto crea un equipo vacío y una invitación de administrador de 7 días. No crea ninguna contraseña.
+5. Ejecutar `supabase/bootstrap-owner.sql`, sustituyendo el correo de ejemplo por el correo real del propietario. Esto crea un equipo vacío y una invitación de administrador de 7 días. No crea ninguna contraseña.
 5. Tras publicar el frontend, abrir `/invite?token=TOKEN` con el token devuelto. El propietario crea personalmente su cuenta y contraseña, confirma su correo y acepta la invitación. No compartir el token con otros destinatarios.
 
 No se crean usuarios, contraseñas o equipos predeterminados en producción. Configura la tarifa real antes de empezar a registrar horas.
@@ -17,14 +17,15 @@ No se crean usuarios, contraseñas o equipos predeterminados en producción. Con
 
 1. Importar este repositorio en Vercel, o ejecutar `npx vercel` desde la carpeta del proyecto con una sesión autorizada.
 2. Configurar `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` con la URL y clave publicable/anon de Supabase. **Nunca usar una clave service_role en variables VITE.**
-3. Framework Vite; build `npm run build`; salida `dist`. `vercel.json` incluye las rutas SPA y cabeceras básicas.
-4. Desplegar con `npx vercel --prod` después de pasar las pruebas. No requiere añadir un dominio de pago.
-5. Añadir la URL final como Site URL en Supabase Auth y autorizar las URLs de retorno `/invite` (incluido el parámetro token) y `/reset-password`. Para preview, autorizar únicamente las URLs de preview que se usen; no añadir comodines globales.
+3. Para enviar invitaciones desde Equipo, configurar también como variables privadas de Vercel: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `INVITATION_FROM_EMAIL` y `PUBLIC_APP_URL`. La clave service role solo se usa en `/api/invitations` y nunca se expone al navegador.
+4. Framework Vite; build `npm run build`; salida `dist`. `vercel.json` incluye las rutas SPA y cabeceras básicas.
+5. Desplegar con `npx vercel --prod` después de pasar las pruebas. No requiere añadir un dominio de pago.
+6. Añadir la URL final como Site URL en Supabase Auth y autorizar las URLs de retorno `/invite` (incluido el parámetro token) y `/reset-password`. Para preview, autorizar únicamente las URLs de preview que se usen; no añadir comodines globales.
 
 ## 3. Activar el equipo
 
 1. El propietario inicia sesión y configura nombre y tarifas.
-2. Desde Equipo → Invitar persona, crea un enlace de 7 días ligado a un correo concreto. Lo comparte personalmente con ese destinatario. La app no envía invitaciones por correo automáticamente.
+2. Desde Equipo → Invitar persona, el administrador escribe el correo y la app envía automáticamente la invitación. El enlace manual queda disponible como respaldo y caduca en 7 días.
 3. La persona registra y confirma su correo, vuelve al enlace y acepta la invitación. Se necesita coincidencia con el correo verificado de la sesión; conocer el enlace no basta.
 4. Asignar a cada miembro sus proyectos. Desde Ajustes puedes elegir si todos los miembros o solo los administradores pueden cambiar el estado de los proyectos. Los administradores ven todos los proyectos del equipo.
 
@@ -37,6 +38,7 @@ No se crean usuarios, contraseñas o equipos predeterminados en producción. Con
 - Enviar, aprobar, devolver y reabrir una semana. Los registros que cruzan semanas bloqueadas no se pueden cambiar.
 - Exportar CSV/PDF y verificar importes con las tarifas reales.
 - Confirmar que los datos de `/demo` nunca aparecen en el equipo real.
+- Probar envío, reenvío y cancelación de invitaciones desde Equipo, incluyendo una cuenta que no sea administradora.
 
 ## Operación
 

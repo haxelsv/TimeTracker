@@ -54,3 +54,34 @@ export async function command(demo: boolean, action: string, payload: Payload): 
   sessionStorage.removeItem('timetracker.pending');
   return data;
 }
+
+export async function sendInvitation(demo: boolean, payload: Payload) {
+  if (demo) return command(true, 'invite', payload);
+  if (!supabase) throw Error('El acceso del equipo aún no está configurado.');
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+  const response = await fetch('/api/invitations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw Error(result.error || 'No se pudo enviar la invitación.');
+  return result;
+}
+
+export async function manageInvitation(action: 'resend' | 'cancel', id: string) {
+  if (!supabase) throw Error('El acceso del equipo aún no está configurado.');
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+  const response = await fetch('/api/invitations', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ action, id }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw Error(result.error || 'No se pudo actualizar la invitación.');
+  return result;
+}

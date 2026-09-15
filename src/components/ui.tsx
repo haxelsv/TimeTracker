@@ -90,6 +90,8 @@ export function Badge({ status }: { status: string }) {
           pending: 'Pendiente',
           in_progress: 'En curso',
           completed: 'Finalizado',
+          expired: 'Expirada',
+          cancelled: 'Cancelada',
         } as Record<string, string>
       )[status] ?? status}
     </span>

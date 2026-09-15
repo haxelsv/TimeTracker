@@ -96,6 +96,11 @@ export interface Invitation {
   role: Role;
   expires_at: string;
   accepted: boolean;
+  status?: 'pending' | 'accepted' | 'expired' | 'cancelled';
+  sent_at?: string | null;
+  last_sent_at?: string | null;
+  send_count?: number;
+  created_at?: string;
 }
 export interface Snapshot {
   workspace: Workspace;
