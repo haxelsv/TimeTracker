@@ -1095,6 +1095,9 @@ main {
   color: #b5697c;
 }
 .badge.pending { background: #f3f1f5; color: #776f80; }
+.badge.accepted { background: #eaf6ef; color: #4f876d; }
+.badge.expired, .badge.cancelled { background: #f7f0e4; color: #8a6d38; }
+.invitation-demo-note { margin: 0 0 14px; padding: 10px 12px; border-radius: 7px; background: #f4f4f5; color: #52525b; font-size: 12px; }
 .badge.in_progress { background: #eef3fa; color: #627d9d; }
 .badge.completed { background: #eaf6ef; color: #4f876d; }
 .notification-wrap { position: relative; }

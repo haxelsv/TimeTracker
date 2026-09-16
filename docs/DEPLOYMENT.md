@@ -5,7 +5,7 @@ La aplicación usa React/Vite, Supabase (Auth + PostgreSQL) y Vercel. `/demo/tim
 ## 1. Crear y configurar Supabase
 
 1. Crear un proyecto en tu organización, sin seleccionar un plan de pago automáticamente.
-2. Ejecutar las migraciones `supabase/migrations/001_timetracker.sql`, `002_project_assignments.sql`, `003_client_logos.sql` y `004_email_invitations.sql` en el SQL Editor del proyecto. En proyectos administrados por CLI, ejecutar `supabase db push` tras enlazar el proyecto.
+2. Ejecutar las migraciones `supabase/migrations/001_timetracker.sql`, `002_project_assignments.sql`, `003_client_logos.sql`, `004_email_invitations.sql` y `005_invitation_history.sql` en el SQL Editor del proyecto. En proyectos administrados por CLI, ejecutar `supabase db push` tras enlazar el proyecto.
 3. Ejecutar una vez `supabase/storage-client-logos.sql` para crear el bucket público `client-logos` y sus políticas de escritura reservadas a administradores. Las imágenes se sirven públicamente mediante URL, pero solo los administradores autenticados pueden subir, reemplazar o eliminar archivos.
 4. Mantener activada la confirmación de correo de Supabase Auth. Configurar SMTP propio para correo de confirmación y recuperación en producción; el correo de prueba de Supabase tiene restricciones.
 5. Ejecutar `supabase/bootstrap-owner.sql`, sustituyendo el correo de ejemplo por el correo real del propietario. Esto crea un equipo vacío y una invitación de administrador de 7 días. No crea ninguna contraseña.

@@ -41,7 +41,8 @@ async function sendEmail(to: string, role: string, token: string, workspaceName:
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.INVITATION_FROM_EMAIL || process.env.EMAIL_FROM;
   if (!apiKey || !from) throw Error('Faltan RESEND_API_KEY e INVITATION_FROM_EMAIL en Vercel.');
-  const base = process.env.PUBLIC_APP_URL || process.env.VITE_PUBLIC_APP_URL || 'https://time-tracker-eight-livid.vercel.app';
+  const base = process.env.PUBLIC_APP_URL;
+  if (!base) throw Error('Falta PUBLIC_APP_URL en Vercel. Configura la URL pública de Star5Tracker antes de enviar invitaciones.');
   const inviteUrl = `${base.replace(/\/$/, '')}/invite?token=${encodeURIComponent(token)}`;
   const roleLabel = role === 'admin' ? 'administrador' : 'miembro';
   const response = await fetch('https://api.resend.com/emails', {

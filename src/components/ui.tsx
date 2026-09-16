@@ -88,6 +88,7 @@ export function Badge({ status }: { status: string }) {
           active: 'Activo',
           archived: 'Archivado',
           pending: 'Pendiente',
+          accepted: 'Aceptada',
           in_progress: 'En curso',
           completed: 'Finalizado',
           expired: 'Expirada',

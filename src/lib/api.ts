@@ -71,7 +71,8 @@ export async function sendInvitation(demo: boolean, payload: Payload) {
   return result;
 }
 
-export async function manageInvitation(action: 'resend' | 'cancel', id: string) {
+export async function manageInvitation(demo: boolean, action: 'resend' | 'cancel', id: string) {
+  if (demo) return command(true, 'manage_invitation', { action, id });
   if (!supabase) throw Error('El acceso del equipo aún no está configurado.');
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;

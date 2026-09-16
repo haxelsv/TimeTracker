@@ -169,6 +169,14 @@ export function readDemo(): Snapshot {
       s.clients = s.clients.map((c) => ({ ...c, logo_url: c.logo_url ?? null }));
       s.tasks = s.tasks.map((t) => ({ ...t, assignee_ids: t.assignee_ids ?? [], status: t.status ?? 'pending', completed_at: t.completed_at ?? null }));
       s.notifications ??= [];
+      s.invitations = s.invitations.map((invite) => ({
+        ...invite,
+        status: invite.accepted ? 'accepted' : invite.status ?? 'pending',
+        created_at: invite.created_at ?? new Date().toISOString(),
+        send_count: invite.send_count ?? 1,
+        sent_at: invite.sent_at ?? new Date().toISOString(),
+        last_sent_at: invite.last_sent_at ?? new Date().toISOString(),
+      }));
       return s;
     } catch {
       /* reset corrupt demo only */
@@ -306,14 +314,34 @@ export async function demoCommand(action: string, data: Payload) {
       ];
     } else if (action === 'invite') {
       const token = uid();
+      const sentAt = new Date().toISOString();
       s.invitations.push({
         id: token,
         email: String(data.email),
         role: data.role as 'member',
         expires_at: new Date(Date.now() + 604800000).toISOString(),
         accepted: false,
+        status: 'pending',
+        created_at: sentAt,
+        sent_at: sentAt,
+        last_sent_at: sentAt,
+        send_count: 1,
       });
       result = { token };
+    } else if (action === 'manage_invitation') {
+      const invitation = s.invitations.find((invite) => invite.id === id);
+      if (!invitation) throw Error('Invitación no encontrada.');
+      if (data.action === 'cancel') {
+        invitation.status = 'cancelled';
+      } else if (data.action === 'resend' && invitation.status !== 'accepted') {
+        const sentAt = new Date().toISOString();
+        invitation.status = 'pending';
+        invitation.expires_at = new Date(Date.now() + 604800000).toISOString();
+        invitation.last_sent_at = sentAt;
+        invitation.send_count = (invitation.send_count ?? 0) + 1;
+      } else {
+        throw Error('La invitación no se puede actualizar.');
+      }
     } else if (action === 'member') {
       if (id === s.me.id && (data.active === false || data.role === 'member'))
         throw Error('No puedes revocar tus propios permisos.');

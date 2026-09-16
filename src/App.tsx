@@ -422,7 +422,7 @@ export default function App() {
           ) : section === 'approvals' ? (
             <ApprovalsPage s={data} now={now} open={open} run={run} />
           ) : section === 'team' ? (
-            <TeamPage s={data} open={open} run={run} reload={reload} />
+            <TeamPage s={data} open={open} run={run} reload={reload} demo={demo} />
           ) : (
             <SettingsPage s={data} busy={busy} demo={demo} open={open} act={act} />
           )}
@@ -1623,15 +1623,17 @@ function ApprovalsPage({ s, now, open, run }: Shared) {
   );
 }
 
-function TeamPage({ s, open, run, reload }: Omit<Shared, 'now'> & { reload: () => Promise<void> }) {
+function TeamPage({ s, open, run, reload, demo }: Omit<Shared, 'now'> & { reload: () => Promise<void>; demo: boolean }) {
   const [invitationError, setInvitationError] = useState('');
   if (s.me.role !== 'admin')
     return <Empty title="Acceso reservado" description="Solo los administradores gestionan el equipo." />;
-  const pendingInvitations = s.invitations.filter((invite) => invite.status !== 'accepted');
+  const invitations = [...s.invitations].sort(
+    (a, b) => Date.parse(b.created_at ?? b.expires_at) - Date.parse(a.created_at ?? a.expires_at),
+  );
   const invitationAction = async (action: 'resend' | 'cancel', id: string) => {
     try {
       setInvitationError('');
-      await manageInvitation(action, id);
+      await manageInvitation(demo, action, id);
       await reload();
     } catch (error) {
       setInvitationError(errorText(error));
@@ -1712,16 +1714,21 @@ function TeamPage({ s, open, run, reload }: Omit<Shared, 'now'> & { reload: () =
             <h2>Invitaciones</h2>
             <p>Solo los administradores pueden invitar personas al equipo.</p>
           </div>
-          <span className="badge">{pendingInvitations.filter((invite) => invite.status === 'pending').length} pendientes</span>
+          <span className="badge">{invitations.filter((invite) => invite.status === 'pending' && Date.parse(invite.expires_at) > Date.now()).length} pendientes</span>
         </div>
+        {demo && (
+          <div className="invitation-demo-note" role="status">
+            Estás en la demostración: se crean enlaces locales, pero no se envían correos.
+          </div>
+        )}
         {invitationError && <div className="form-error" role="alert"><AlertCircle size={16} />{invitationError}</div>}
-        {pendingInvitations.length ? pendingInvitations.map((invite) => {
-          const expired = invite.status === 'expired' || Date.parse(invite.expires_at) <= Date.now();
-          const status = expired && invite.status === 'pending' ? 'expired' : invite.status || 'pending';
+        {invitations.length ? invitations.map((invite) => {
+          const expired = !invite.accepted && (invite.status === 'expired' || Date.parse(invite.expires_at) <= Date.now());
+          const status = invite.accepted ? 'accepted' : expired ? 'expired' : invite.status || 'pending';
           return <div className="table-row invitation-row" key={invite.id}>
             <div className="person-cell">
               <span className="avatar"><Mail size={16} /></span>
-              <div><strong>{invite.email}</strong><small>{invite.role === 'admin' ? 'Administrador' : 'Miembro'} · vence {dateLabel(invite.expires_at.slice(0, 10))}</small></div>
+              <div><strong>{invite.email}</strong><small>{invite.role === 'admin' ? 'Administrador' : 'Miembro'} · {status === 'accepted' ? 'aceptó la invitación' : `vence ${dateLabel(invite.expires_at.slice(0, 10))}`}{invite.send_count ? ` · ${invite.send_count} envío${invite.send_count === 1 ? '' : 's'}` : ''}</small></div>
             </div>
             <Badge status={status} />
             <div className="row-actions">
@@ -1731,7 +1738,7 @@ function TeamPage({ s, open, run, reload }: Omit<Shared, 'now'> & { reload: () =
               </>}
             </div>
           </div>;
-        }) : <Empty title="Sin invitaciones pendientes" description="Las invitaciones que envíes aparecerán aquí." />}
+        }) : <Empty title="Sin invitaciones todavía" description="Las invitaciones enviadas y aceptadas aparecerán aquí." />}
       </div>
       <div className="info-card">
         <ShieldCheck size={23} />

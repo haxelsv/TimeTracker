@@ -189,7 +189,12 @@ describe.sequential('Postgres permissions and transactional commands', () => {
     } finally {
       await db.exec('reset role');
     }
-    expect((await snap(admin)).members).toHaveLength(3);
+    const adminSnapshot = await snap(admin);
+    expect(adminSnapshot.members).toHaveLength(3);
+    expect(adminSnapshot.invitations).toEqual(
+      expect.arrayContaining([expect.objectContaining({ email: 'new@example.com', accepted: true, status: 'accepted' })]),
+    );
+    expect((await snap(member)).invitations).toEqual([]);
   });
   it('notifies task assignees and lets them update completion', async () => {
     const project = (await snap(admin)).projects[0];
