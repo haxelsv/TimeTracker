@@ -74,7 +74,11 @@ export default async function handler(req: Request, res: Response) {
       const { data: pending } = await admin.from('invitations').select('id').eq('workspace_id', member.workspace_id).ilike('email', email).eq('status', 'pending').maybeSingle();
       if (pending) return jsonError(res, 409, 'Ya existe una invitación pendiente para este correo.');
       const { data: workspace } = await admin.from('workspaces').select('name').eq('id', member.workspace_id).single();
-      const { data: invitation, error } = await admin.from('invitations').insert({ workspace_id: member.workspace_id, email, role, invited_by: member.id }).select('id,token,expires_at').single();
+      const { data: invitation, error } = await admin
+        .from('invitations')
+        .insert({ workspace_id: member.workspace_id, email, role })
+        .select('id,token,expires_at')
+        .single();
       if (error || !invitation) throw Error(error?.message || 'No se pudo crear la invitación.');
       try {
         await sendEmail(email, role, invitation.token, workspace?.name || 'tu equipo');
